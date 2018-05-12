@@ -42,14 +42,16 @@ import           Network.AWS.S3.UploadPart
 import           Control.Applicative
 import           Control.Category                       ((>>>))
 import           Control.Monad                          (forM_, when, (>=>))
+import           Control.Monad.Catch                    (MonadCatch)
 import           Control.Monad.IO.Class                 (MonadIO, liftIO)
 import           Control.Monad.Morph                    (lift)
-import           Control.Monad.Reader.Class             (local)
-import           Control.Monad.Trans.Resource           (MonadBaseControl,
-                                                         MonadResource)
+import           Control.Monad.Reader.Class             (MonadReader, local)
+import           Control.Monad.Trans.Control            (MonadBaseControl)
+import           Control.Monad.Trans.Resource           (MonadResource)
 
-import           Data.Conduit                           (Sink, await)
+import           Data.Conduit                           (ConduitT, await)
 import           Data.Conduit.List                      (sourceList)
+import           Data.Void                              (Void)
 
 import           Data.ByteString                        (ByteString)
 import qualified Data.ByteString                        as BS
@@ -83,7 +85,6 @@ type NumThreads = Int
 minimumChunkSize :: ChunkSize
 minimumChunkSize = 6*1024*1024 -- Making this 5MB+1 seemed to cause AWS to complain
 
-
 {- |
 Given a 'CreateMultipartUpload', creates a 'Sink' which will sequentially
 upload the data streamed in in chunks of at least 'chunkSize' and return
@@ -98,10 +99,13 @@ See the AWS documentation for more details.
 
 May throw 'Network.AWS.Error'
 -}
-streamUpload :: (MonadResource m, AWSConstraint r m, MonadAWS m)
-             => Maybe ChunkSize -- ^ Optional chunk size
-             -> CreateMultipartUpload -- ^ Upload location
-             -> Sink ByteString m CompleteMultipartUploadResponse
+streamUpload
+  :: (Control.Monad.Catch.MonadCatch (ConduitT ByteString o m),
+      MonadReader s m, HasEnv s,
+      MonadAWS m) =>
+     Maybe ChunkSize
+     -> CreateMultipartUpload
+     -> ConduitT ByteString o m CompleteMultipartUploadResponse
 streamUpload mcs cmu = do
   logger <- lift $ view envLogger
   let logStr :: MonadIO m => String -> m ()
