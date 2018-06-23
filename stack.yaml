@@ -1,13 +1,13 @@
-resolver: lts-11.1
+resolver: lts-11.14
 packages:
 - '.'
-extra-deps:
-- github: brendanhay/amazonka
-  commit: 9aa47c267631339a32a1a4ea373b1319145662e2
-  subdirs:
-  - amazonka
-  - core
-  - amazonka-s3
+# extra-deps:
+# - github: brendanhay/amazonka
+#   commit: 9aa47c267631339a32a1a4ea373b1319145662e2
+#   subdirs:
+#   - amazonka
+#   - core
+#   - amazonka-s3
 
 # Override default flag values for local packages and extra-deps
 flags: {}
